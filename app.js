@@ -312,3 +312,52 @@ SELECT tweet.tweet_id
   });
   response.send(tempArray);
 });
+
+//create a tweet API
+
+app.post("/user/tweets/", authenticateToken, async (request, response) => {
+  const { username } = request;
+  const { tweet } = request.body;
+  const getUserIdQuery = `
+    SELECT user_id FROM user WHERE username = '${username}'
+    `;
+  const userId = await db.get(getUserIdQuery);
+  const addTweetQuery = `
+  INSERT INTO tweet (tweet,user_id) VALUES ('${tweet}',${userId.user_id})
+  `;
+  const dbResponse = await db.run(addTweetQuery);
+  const tweetId = dbResponse.lastID;
+  response.send(`Created a Tweet`);
+});
+
+//Delete a tweet API
+
+app.delete(
+  "/tweets/:tweetId/",
+  authenticateToken,
+  async (request, response) => {
+    const { username } = request;
+    const { tweetId } = request.params;
+    const getTweetUSerId = `
+    SELECT user_id
+    FROM tweet
+    WHERE tweet_id = ${tweetId}
+    `;
+    const tweetUser = await db.get(getTweetUSerId);
+
+    const getUserIdQuery = `
+    SELECT user_id FROM user WHERE username = '${username}'
+    `;
+    const userId = await db.get(getUserIdQuery);
+    if (tweetUser.user_id == userId.user_id) {
+      const deleteTweetQuery = `
+        DELETE FROM tweet WHERE tweet_id = ${tweetId}
+        `;
+      await db.run(deleteTweetQuery);
+      response.send("Tweet Removed");
+    } else {
+      response.status(401);
+      response.send("Invalid Request");
+    }
+  }
+);
