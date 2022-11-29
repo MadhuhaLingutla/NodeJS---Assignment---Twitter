@@ -289,9 +289,9 @@ app.get(
 );
 
 //List of tweets of a user API
-app.get("/user/tweets/", authenticateToken, async (request, response) => {
+/*app.get("/user/tweets/", authenticateToken, async (request, response) => {
   const { username } = request;
-  const getAllTweetsQuery = `
+  /*const getAllTweetsQuery = `
 SELECT tweet.tweet_id
   FROM tweet
   WHERE tweet.user_id =  (SELECT user_id FROM user WHERE username='${username}')
@@ -305,12 +305,36 @@ SELECT tweet.tweet_id
       JOIN reply ON reply.tweet_id = tweet.tweet_id
       WHERE tweet.tweet_id = ${each.tweet_id}
       `;
+
     const tempResponse = await db.get(tempQuery);
     console.log(tempQuery);
     console.log(tempResponse);
     return tempResponse;
   });
-  response.send(tempArray);
+  response.send(tempResponse); 
+});*/
+
+//List of tweets of a user
+
+app.get("/user/tweets/", authenticateToken, async (request, response) => {
+  const { username } = request;
+  const getTweetsQuery = `SELECT 
+   tweet,
+   (
+       SELECT COUNT(like_id)
+       FROM like
+       WHERE tweet_id=tweet.tweet_id
+   ) AS likes,
+   (
+       SELECT COUNT(reply_id)
+       FROM reply
+       WHERE tweet_id=tweet.tweet_id  
+   ) AS replies,
+   date_time AS dateTime
+   FROM tweet
+   WHERE user_id=(SELECT user_id FROM user WHERE username='${username}')`;
+  const dbResponse = await db.all(getTweetsQuery);
+  response.send(dbResponse);
 });
 
 //create a tweet API
@@ -361,3 +385,5 @@ app.delete(
     }
   }
 );
+
+module.exports = app;
